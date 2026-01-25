@@ -1,0 +1,11 @@
+# Ignore the entire build folder
+build/
+bin/
+obj/
+
+# Ignore vcpkg's local files
+vcpkg_installed/
+
+# If you create a file for your Reddit Secret, ignore it too
+config.h
+secrets.json
