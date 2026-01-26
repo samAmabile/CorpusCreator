@@ -6,12 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(cpr CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 
 add_executable(scraper
     main.cpp
     Crawler.cpp
 )
 
-target_link_libraries(scraper PRIVATE cpr::cpr nlohmann_json::nlohmann_json)
+target_link_libraries(scraper PRIVATE cpr::cpr nlohmann_json::nlohmann_json zstd::libzstd_shared)
 
 

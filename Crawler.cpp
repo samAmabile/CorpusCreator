@@ -1,13 +1,33 @@
 #include "Crawler.hpp"
+#include "Utils.hpp"
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <thread>
+#include <chrono>
+#include <regex>
 
 using json = nlohmann::json;
 
+std::string Crawler::processText(const std::string& rawText) {
+    std::string cleanText = Utils::stripHTML(rawText);
+
+    std::stringstream ss(cleanText);
+    std::string word;
+    size_t tokens = 0;
+    while(ss >> word){
+        tokens++;
+    }
+    totalTokens += tokens;
+
+    auto compressed = Utils::compress(cleanText);
+    Utils::saveBinary("corpus.zst", compressed);
+    
+    return cleanText;
+}
 
 void Crawler::scrapeWiki(int numPages) {
     std::cout<<"Scraping Wikipedia for "<<numPages<<" pages..."<<std::endl;
@@ -41,26 +61,12 @@ void Crawler::scrapeWiki(int numPages) {
         entry.category = "General";
 
         if (!entry.text.empty()) {
-            std::stringstream ss(entry.text);
-            std::string word;
-            size_t tokens = 0;
-
-            while (ss >> word){
-                tokens++;
-            }
-
-            totalTokens += tokens;
-
+            processText(entry.text);
             metaData.push_back(entry);
-
-            std::cout<<"Successfully scraped: "<<page["title"]<<" ("<<tokens<<" tokens added to total)"<<std::endl;
+            std::cout<<"Successfully scraped: "<<page["title"]<<std::endl;
         }
-
         
     }
-
-
-
 
     std::cout<<"Crawl complete. New total entries: "<<metaData.size()<<'\n'<<"New total tokens: "<<totalTokens<<std::endl;
 }
@@ -109,10 +115,81 @@ void Crawler::scrapeReddit(const std::string& subreddit, int limit) {
          }
     }
 }
+
+void Crawler::scrapeStackExchange(const std::string& tag, int pages) {
+    std::cout<<"Scraping Stack Exchange for "<<pages<<" pages under tag: "<<tag<<std::endl;
+
+    for (auto i{1}; i <= pages; ++i) {
+        auto response = cpr::Get(
+            cpr::Url{"https://api.stackexchange.com/2.3/questions"},
+            cpr::Parameters{
+                {"page", std::to_string(i)},
+                {"pagesize", "50"},
+                {"order", "desc"},
+                {"sort", "votes"},
+                {"tagged", tag},
+                {"site", "english"},
+                {"filter", "withbody"}
+            }
+            );
+        
+        
+        if (response.status_code == 200) {
+            auto json = nlohmann::json::parse(response.text);
+            for (const auto& item : json["items"]) {
+                
+                std::string body = item["body"];
+                std::string title = item["title"];
+                
+                std::string cleanText = processText(title+" "+body);
+
+                Entry entry;
+                entry.source = "StackExchange:English";
+                entry.category = tag;
+                entry.text = cleanText;
+                metaData.push_back(entry);
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+
+}
+
+void Crawler::scrapeGutenberg(int bookID) {
+    std::string URL = "https://gutenberg.org/cache/epub/"+std::to_string(bookID)+"/pg"+std::to_string(bookID)+".txt";
+    std::cout<<"Downloading Book ID: "<<bookID<<" from Gutenberg.org..."<<std::endl;
+
+    auto response = cpr::Get(cpr::Url{URL});
+
+    if (response.status_code == 200) {
+        std::string rawText = response.text;
+        
+        size_t startPos = rawText.find("*** START OF THE PROJECT GUTENBERG EBOOK");
+        size_t endPos = rawText.find("*** END OF THE PROJECT GUTENBERG EBOOK");
+
+        if (startPos != std::string::npos && endPos != std::string::npos) {
+            startPos = rawText.find("***", startPos + 40) + 3;
+            std::string bookContent = rawText.substr(startPos, endPos - startPos);
+            std::regex pattern(R"(\[Sidenote:.*?\])");
+            std::string preCleanText = std::regex_replace(bookContent, pattern, "");
             
+            cleanText = processText(preCleanText);
+            
+            Entry entry;
+            entry.source = "Project Gutenberg";
+            entry.category = "Ebook No. "+std::to_string(bookID);
+            entry.text = cleanText.substr(0, 2000);
+            
+            metaData.push_back(entry);
 
+            std::cout<<"Gutenberg Book ID: "<<bookID<<" succesfully added to corpus."<<std::endl;
 
-
+        }else{
+            std::cerr<<"Error accessing Project Gutenberg Book ID="<<bookID<<"; check book ID or try another."<<std::endl;
+        }
+            
+            
 void Crawler::saveToCSV(const std::string& filename) {
     std::ofstream file(filename);
 
@@ -139,6 +216,13 @@ void Crawler::saveToCSV(const std::string& filename) {
     std::cout<<"Data successfully written to "<<filename<<std::endl;
 }
 
+void Crawler::verifyFile(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    std::string result = Utils::decompress(buffer);
+    std::cout<<"Verified Data (first 100 char): "<<result.substr(0, 100)<<std::endl;
+}
 
     
 
