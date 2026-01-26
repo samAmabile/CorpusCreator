@@ -16,6 +16,9 @@ int main(){
     //myCrawler.scrapeReddit("linguistics", 8);
 
     myCrawler.scrapeStackExchange("etymology", 5);
+
+    myCrawler.scrapeGutenberg(77776);
+
     cout<<"Total tokens in stack rn: "<<myCrawler.getTokenCount()<<endl;
 
     myCrawler.saveToCSV("testcorpus_a.csv");
