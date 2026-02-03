@@ -10,10 +10,12 @@
 #include <chrono>
 #include <regex>
 
+
 using json = nlohmann::json;
 
 std::string Crawler::processText(const std::string& rawText) {
     std::string cleanText = Utils::stripHTML(rawText);
+    Utils::cleanTags(cleanText);
 
     std::stringstream ss(cleanText);
     std::string word;
@@ -142,7 +144,7 @@ void Crawler::scrapeStackExchange(const std::string& tag, int pages) {
                 std::string title = item["title"];
                 
                 std::string cleanText = processText(title+" "+body);
-
+               
                 Entry entry;
                 entry.source = "StackExchange:English";
                 entry.category = tag;
@@ -171,10 +173,10 @@ void Crawler::scrapeGutenberg(int bookID) {
         if (startPos != std::string::npos && endPos != std::string::npos) {
             startPos = rawText.find("***", startPos + 40) + 3;
             std::string bookContent = rawText.substr(startPos, endPos - startPos);
-            std::regex pattern(R"(\[Sidenote:.*?\])");
+            std::regex pattern(R"(\[[^\]]*\])");
             std::string preCleanText = std::regex_replace(bookContent, pattern, "");
             
-            cleanText = processText(preCleanText);
+            std::string cleanText = processText(preCleanText);
             
             Entry entry;
             entry.source = "Project Gutenberg";
@@ -188,13 +190,15 @@ void Crawler::scrapeGutenberg(int bookID) {
         }else{
             std::cerr<<"Error accessing Project Gutenberg Book ID="<<bookID<<"; check book ID or try another."<<std::endl;
         }
-            
+    }
+}
             
 void Crawler::saveToCSV(const std::string& filename) {
     std::ofstream file(filename);
 
     if (!file.is_open()) {
         std::cerr<<"Error: could not create file "<<filename<<std::endl;
+	return;
     }
 
     file<<"Source,Category,Text\n";

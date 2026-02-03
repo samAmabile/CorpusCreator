@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <map>
 
 
 
@@ -15,6 +16,27 @@ namespace Utils {
         static const std::regex tags("<[^>]*>");
         return std::regex_replace(html, tags, "");
     }
+    
+    inline void cleanTags(std::string& cleanText) {
+        std::map<std::string, std::string> replacements = {
+            {"&quot;", "\""},
+            {"&#39;", "'"},
+            {"&amp;", "&"},
+            {"&lt;", "<"},
+            {"&gt;", ">"},
+            {"&#233;", "e"}
+        };
+        
+        for (const auto& [target, replacement] : replacements) {
+            size_t pos = cleanText.find(target);
+            while (pos != std::string::npos) {
+                cleanText.replace(pos, target.length(), replacement);
+                pos = cleanText.find(target, pos + replacement.length());
+            }
+        }
+    }
+        
+
     
     inline std::vector<char> compress(std::string& input) {
         size_t const cBuffSize = ZSTD_compressBound(input.size());
@@ -50,7 +72,7 @@ namespace Utils {
         }
     
         return decompressed;
-}
+    }
     
     inline void saveBinary(const std::string& filename, const std::vector<char>& data) {
         std::ofstream ofs(filename, std::ios::binary | std::ios::app);
