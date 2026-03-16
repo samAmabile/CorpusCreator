@@ -26,7 +26,7 @@ cd corpusbuilder
 mkdir build
 cd build
 cmake .. 
-cmake --build . --config Release
+cmake 
 ```
 
 ## Run
