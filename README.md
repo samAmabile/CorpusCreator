@@ -17,7 +17,7 @@ cd corpusbuilder
 mkdir build
 cd build
 cmake ..
-cmake --build . --config Release
+cmake 
 ```
 * **Windows:**
 ```powershell
@@ -26,7 +26,7 @@ cd corpusbuilder
 mkdir build
 cd build
 cmake .. 
-cmake 
+cmake --build . --config Release
 ```
 
 ## Run
