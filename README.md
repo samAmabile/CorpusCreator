@@ -10,7 +10,7 @@ A C++ tool for building linguistic corpora from Wikipedia, StackExchange and Pro
     * `zstd` (for file compression)
 
 ## Build
-* **Linux:**
+**Linux:**
 ```bash
 git clone "https://github.com/samAmabile/CorpusCreator.git"
 cd CorpusCreator
@@ -19,8 +19,9 @@ cd build
 cmake ..
 cmake --build . 
 ```
-* **Windows:**
-**note:** requires the [MSVC compiler](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) that comes with Visual Studio Build Tools. 
+**Windows:**
+
+*note: requires the [MSVC compiler](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) that comes with Visual Studio Build Tools.*
 * Build and run from **Developer Powershell for VS**
 * Make sure you have `vcpkg` installed and `VCPKG_ROOT` environment variable set
 
