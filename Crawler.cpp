@@ -1,5 +1,5 @@
 #include "Crawler.hpp"
-#include "Utils.hpp"
+#include "utils.hpp"
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
@@ -9,9 +9,23 @@
 #include <thread>
 #include <chrono>
 #include <regex>
-
+#include <filesystem>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 using json = nlohmann::json;
+namespace fs = std::filesystem;
+
+std::string Crawler::makeDate(){
+    auto now = std::time(nullptr);
+    auto time = *std::localtime(&now); 
+
+    std::ostringstream oss; 
+    oss << std::put_time(&time, "%Y-%m-%d");
+
+    return oss.str();
+}
 
 std::string Crawler::processText(const std::string& rawText) {
     std::string cleanText = Utils::stripHTML(rawText);
@@ -25,8 +39,14 @@ std::string Crawler::processText(const std::string& rawText) {
     }
     totalTokens += tokens;
 
+    //build filename for binary: 'corpus_yyyy-mm-dd.zstd'
+    std::string binfile = "corpus_"+makeDate();
+    //add path for dir data/raw/filename:
+    fs::path pth = fs::path("..") / "data" / "raw"; 
+    fs::path fullpth = pth / binfile;
+
     auto compressed = Utils::compress(cleanText);
-    Utils::saveBinary("corpus.zst", compressed);
+    Utils::saveBinary(fullpth.string(), compressed);
     
     return cleanText;
 }
@@ -162,7 +182,10 @@ void Crawler::scrapeGutenberg(int bookID) {
     std::string URL = "https://gutenberg.org/cache/epub/"+std::to_string(bookID)+"/pg"+std::to_string(bookID)+".txt";
     std::cout<<"Downloading Book ID: "<<bookID<<" from Gutenberg.org..."<<std::endl;
 
-    auto response = cpr::Get(cpr::Url{URL});
+    auto response = cpr::Get(
+            cpr::Url{URL}, 
+            cpr::Header{{"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}}
+        );
 
     if (response.status_code == 200) {
         std::string rawText = response.text;

@@ -20,6 +20,7 @@ public:
     void saveToCSV(const std::string& filename);
     void verifyFile(const std::string& filename);
     size_t getTokenCount() const{ return totalTokens;}
+    std::string makeDate();
 private:
     std::vector<Entry> metaData;
     size_t totalTokens = 0;
